@@ -25,6 +25,7 @@ During the initialization phase of your application:
 
 ```js
 var express = require('express');
+var bodyParser = require('body-parser');
 var webhookValidator = require('github-webhook-validator');
 
 module.exports.launchServer = function(config) {
