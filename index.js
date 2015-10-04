@@ -2,6 +2,7 @@
 
 'use strict';
 
+var bufferEq = require('buffer-equal-constant-time');
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -68,8 +69,12 @@ exports.validatePayload = function(rawBody, signature, secretKey) {
   if (algorithmAndHash.length !== 2) { return false; }
 
   try {
+    // Replace bufferEq() once https://github.com/nodejs/node/issues/3043 is
+    // resolved and the standard library implementation is available.
     var hmac = crypto.createHmac(algorithmAndHash[0], secretKey);
-    return hmac.update(rawBody).digest('hex') === algorithmAndHash[1];
+    var computed = new Buffer(hmac.update(rawBody).digest('hex'));
+    var header = new Buffer(algorithmAndHash[1]);
+    return bufferEq(computed, header);
   } catch (err) {
     return false;
   }
