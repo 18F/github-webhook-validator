@@ -2,8 +2,8 @@
 
 'use strict';
 
+var bufferEq = require('buffer-equal-constant-time');
 var fs = require('fs');
-var path = require('path');
 var crypto = require('crypto');
 
 var exports = module.exports = {};
@@ -11,7 +11,7 @@ var exports = module.exports = {};
 exports.getKeyFiles = function(defaultKeyFile, builderConfigs,
   parseKeyLabelFromConfig) {
   if (!parseKeyLabelFromConfig) {
-    parseKeyLabelFromConfig = function(config) { return config.branch; }
+    parseKeyLabelFromConfig = function(config) { return config.branch; };
   }
   if (!builderConfigs) { builderConfigs = []; }
 
@@ -68,8 +68,12 @@ exports.validatePayload = function(rawBody, signature, secretKey) {
   if (algorithmAndHash.length !== 2) { return false; }
 
   try {
+    // Replace bufferEq() once https://github.com/nodejs/node/issues/3043 is
+    // resolved and the standard library implementation is available.
     var hmac = crypto.createHmac(algorithmAndHash[0], secretKey);
-    return hmac.update(rawBody).digest('hex') === algorithmAndHash[1];
+    var computed = new Buffer(hmac.update(rawBody).digest('hex'));
+    var header = new Buffer(algorithmAndHash[1]);
+    return bufferEq(computed, header);
   } catch (err) {
     return false;
   }
@@ -81,13 +85,13 @@ exports.ValidationError = function(keyLabel, webhookId, ip) {
   this.ip = ip;
   this.toString = function() {
     return 'invalid webhook: ' + [keyLabel, webhookId, ip].join(' ');
-  }
-}
+  };
+};
 
 exports.parseKeyLabelFromBranch = function(rawBody) {
   var branchMatch = new RegExp('"ref": ?"refs/heads/([^"]*)"').exec(rawBody);
   return (branchMatch !== null) ? branchMatch[1] : null;
-}
+};
 
 exports.middlewareValidator = function(keyDictionary, parseKeyLabelFromBody) {
   if (!parseKeyLabelFromBody) {
