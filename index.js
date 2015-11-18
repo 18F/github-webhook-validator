@@ -71,7 +71,7 @@ exports.validatePayload = function(rawBody, signature, secretKey) {
     // Replace bufferEq() once https://github.com/nodejs/node/issues/3043 is
     // resolved and the standard library implementation is available.
     var hmac = crypto.createHmac(algorithmAndHash[0], secretKey);
-    var computed = new Buffer(hmac.update(rawBody).digest('hex'));
+    var computed = new Buffer(hmac.update(rawBody, 'utf8').digest('hex'));
     var header = new Buffer(algorithmAndHash[1]);
     return bufferEq(computed, header);
   } catch (err) {

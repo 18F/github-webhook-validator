@@ -16,7 +16,7 @@ chai.use(chaiAsPromised);
 
 function makeSignature(payload, secret) {
   return 'sha1=' +
-    crypto.createHmac('sha1', secret).update(payload).digest('hex');
+    crypto.createHmac('sha1', secret).update(payload, 'utf8').digest('hex');
 }
 
 function check(done, cb) {
@@ -148,6 +148,16 @@ describe('PayloadValidator', function() {
       signature = 'foobar=' + algorithmAndHash[1];
       expect(validator.validatePayload(payload, signature, secret))
         .to.be.false;
+    });
+
+    it('should properly handle strings with UTF-8 characters', function() {
+      // Note the apostrophe in `it’s` is a UTF-8 smart quote.
+      var payload = '"description": "Guide to help agencies understand what ' +
+        'it’s like to work with 18F. ",';
+      signature = makeSignature(payload, secret);
+      expect(signature).to.equal(
+        'sha1=6364b3c77dc014e0226e541fc47615141e54428d');
+      expect(validator.validatePayload(payload, signature, secret)).to.be.true;
     });
   });
 
